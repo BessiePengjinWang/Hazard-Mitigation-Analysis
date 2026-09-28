@@ -7,9 +7,7 @@ what actually predicts the size of a federal award.
 ![screenshot](doc/figs/main_fig.png)
 
 Originally built as a team project for Columbia's GR5243 Applied Data
-Science (Fall 2023). This version has been substantially rewritten and is
-maintained here as an individual portfolio project - see
-[What changed since the original](#what-changed-since-the-original) below.
+Science (Fall 2023).
 
 ## Overview
 
