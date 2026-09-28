@@ -2,9 +2,7 @@
 
 GR5243 Applied Data Science, Project 2 (Team 7, Fall 2023)
 
-Live app: https://drake-wang-2000.shinyapps.io/project2/
-
-Forked from the [original team repository](https://github.com/drakewang2000/ADS-Fall2023-Project2-ShinyApp-Group7).
+Live app (https://drake-wang-2000.shinyapps.io/project2/)
 
 ![screenshot](doc/figs/main_fig.png)
 
@@ -15,7 +13,7 @@ An interactive Shiny app built on FEMA's Hazard Mitigation Assistance (HMA) data
 ## Data
 
 - [OpenFEMA Hazard Mitigation Assistance Projects v3](https://www.fema.gov/about/openfema/data-sets): funded projects (financial obligation to grantees) under FEMA's three HMA grant programs
-- OpenFEMA Disaster Declarations Summaries v1: used to add disaster type detail
+- OpenFEMA Disaster Declarations Summaries v1 (https://www.fema.gov/about/openfema/data-sets): used to add disaster type detail
 
 ## App pages
 
@@ -26,10 +24,21 @@ An interactive Shiny app built on FEMA's Hazard Mitigation Assistance (HMA) data
 
 ## Methods and findings
 
+### Fund allocation analysis
 - **Obligated %** = obligation amount / requested amount. **Benefit-cost ratio (BCR)** = total discounted annualized benefits / total annualized cost.
 - Across all projects, obligated % and BCR have a weak positive correlation (0.23). The four states with the highest and lowest obligated % show no clear BCR pattern until outliers are removed.
 - Incident type shows no significant relationship with BCR or with project accomplishment rate.
-- Feature importance is computed by permutation: shuffle one predictor at a time and measure the increase in model MSE. Program area, incident type and state rank highest; program fiscal year and project type rank lower.
+
+### Random forest: drivers of federal share obligated
+- **Target:** federal share obligated (`federalShareObligated`)
+- **Predictors:** program area, incident type, state, program fiscal year, project type (five manually selected from the available features)
+- **Model:** random forest regression ([R package], [number] trees, [train/test split])
+- **Importance:** permutation importance, measured as the increase in MSE after shuffling one predictor at a time, computed on [held-out / training] data
+- **Result:** program area, incident type and state rank highest; program fiscal year and project type rank lower
+
+### New York 2024 disaster estimate
+- Random forest [classifier] trained on [features] to predict incident type, with the output shown as the predicted share of each type for New York in 2024
+- A rough estimate from historical data, not a forecast
 
 ## Limitations
 
@@ -47,8 +56,6 @@ proj/
 ├── doc/      project description and figures
 └── output/   generated outputs
 ```
-
-Each subfolder contains its own README. Structure follows [nicercode](http://nicercode.github.io/blog/2013-04-05-projects/) project organization suggestions.
 
 ## My contribution
 
