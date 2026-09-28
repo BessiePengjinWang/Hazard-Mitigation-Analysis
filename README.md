@@ -1,67 +1,175 @@
-# Hazard Mitigation Analysis: A Shiny App on FEMA Mitigation Funding
+# Hazard Mitigation Analysis
 
-GR5243 Applied Data Science, Project 2 (Team 7, Fall 2023)
-
-Live app (https://drake-wang-2000.shinyapps.io/project2/)
+A Shiny app exploring FEMA's Hazard Mitigation Assistance (HMA) data: where
+and when disasters occur, how federal mitigation funds are allocated, and
+what actually predicts the size of a federal award.
 
 ![screenshot](doc/figs/main_fig.png)
 
+Originally built as a team project for Columbia's GR5243 Applied Data
+Science (Fall 2023). This version has been substantially rewritten and is
+maintained here as an individual portfolio project - see
+[What changed since the original](#what-changed-since-the-original) below.
+
 ## Overview
 
-An interactive Shiny app built on FEMA's Hazard Mitigation Assistance (HMA) data, with New York City as the focal point. It shows where and when disasters occur, how federal mitigation funds are allocated, and which factors drive fund amounts. The goal is to help residents prepare for likely hazards and to give policymakers evidence for future funding decisions.
+The app has six tabs, backed by FEMA's public disaster and grant-funding
+datasets:
+
+1. **Disaster geo distribution** - heat map of mission-assignment locations
+   by disaster type and year
+2. **Disaster time distribution** - seasonal distribution of a selected
+   disaster type
+3. **Fund percentage allocation** - total federal share obligated by
+   incident type
+4. **Fund allocation by disasters** - share of requested project funds
+   obligated, by state
+5. **Crucial fund amount factors** - random forest feature importance for
+   federal share obligated
+6. **NY 2024 disaster pred** - historical extrapolation of incident-type
+   mix for New York
 
 ## Data
 
-- [OpenFEMA Hazard Mitigation Assistance Projects v3](https://www.fema.gov/about/openfema/data-sets): funded projects (financial obligation to grantees) under FEMA's three HMA grant programs
-- OpenFEMA Disaster Declarations Summaries v1 (https://www.fema.gov/about/openfema/data-sets): used to add disaster type detail
+- [OpenFEMA Hazard Mitigation Assistance Projects v3](https://www.fema.gov/openfema-data-page/hazard-mitigation-assistance-projects-v3)
+- [OpenFEMA Disaster Declarations Summaries v2](https://www.fema.gov/openfema-data-page/disaster-declarations-summaries-v2)
+- [OpenFEMA Mission Assignments v1](https://www.fema.gov/openfema-data-page/mission-assignments-v1)
+- [OpenFEMA Public Assistance Funded Projects Details v1](https://www.fema.gov/openfema-data-page/public-assistance-funded-projects-details-v1)
+- [US Census Bureau ZCTA Gazetteer file](https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html) - ZIP-to-lat/long crosswalk used for geocoding
 
-## App pages
-
-1. **Disaster geography:** heat map of disaster occurrences by type
-2. **Disaster timing:** seasonal distribution of disasters by type
-3. **Fund allocation:** share of requested funds obligated by state, and total federal share obligated by incident type
-4. **Fund drivers and prediction:** random forest feature importance for federal share obligated, and a predicted disaster type distribution for New York in 2024
+See [`data/README.md`](data/README.md) for how these are downloaded and
+[`scripts/README.md`](scripts/README.md) for how they're turned into the
+artifacts the app reads.
 
 ## Methods and findings
 
-### Fund allocation analysis
-- **Obligated %** = obligation amount / requested amount. **Benefit-cost ratio (BCR)** = total discounted annualized benefits / total annualized cost.
-- Across all projects, obligated % and BCR have a weak positive correlation (0.23). The four states with the highest and lowest obligated % show no clear BCR pattern until outliers are removed.
-- Incident type shows no significant relationship with BCR or with project accomplishment rate.
+### Fund allocation vs. benefit-cost ratio
 
-### Random forest: drivers of federal share obligated
-- **Target:** federal share obligated (`federalShareObligated`)
-- **Predictors:** program area, incident type, state, program fiscal year, project type (five manually selected from the available features)
-- **Model:** random forest regression ([R package], [number] trees, [train/test split])
-- **Importance:** permutation importance, measured as the increase in MSE after shuffling one predictor at a time, computed on [held-out / training] data
-- **Result:** program area, incident type and state rank highest; program fiscal year and project type rank lower
+**Obligated %** = federal share obligated / requested project amount.
+**Benefit-cost ratio (BCR)** = discounted annualized benefits / annualized
+cost, reported by the applicant.
 
-### New York 2024 disaster estimate
-- Random forest [classifier] trained on [features] to predict incident type, with the output shown as the predicted share of each type for New York in 2024
-- A rough estimate from historical data, not a forecast
+BCR is extremely right-skewed (a handful of projects report ratios in the
+hundreds of thousands), so Pearson correlation is dominated by outliers:
+Pearson r = 0.00. Spearman rank correlation, the more honest summary of
+whether the two move together, is -0.078 (n = 27,827 projects) - a weak
+*negative* relationship, not the positive one the original project
+reported. In practice, obligated % and BCR are essentially unrelated.
+
+### What predicts federal share obligated?
+
+A random forest regresses `federalShareObligated` on five predictors:
+program area, incident type, state, program fiscal year, and project
+category (FEMA's leading eligible-activity code, collapsed from 312
+free-text `projectType` values). Importance is permutation importance
+(`randomForest`'s built-in `%IncMSE`, i.e. increase in out-of-bag MSE when
+a predictor is shuffled) - not a hand-rolled shuffle-and-refit loop, which
+is slower and produces unstable importance for high-cardinality factors.
+
+| Feature | % increase in MSE |
+|---|---|
+| Project category | 5.85 |
+| Program fiscal year | 4.42 |
+| Incident type | 3.92 |
+| State | 3.23 |
+| Program area | 0.00 |
+
+Fit on 7,815 complete rows with `programFy >= 2013`. Program area carries
+no importance, most likely because HMA's three grant programs (HMGP, PDM,
+FMA) don't differ enough in typical award size once the other four
+predictors are known.
+
+### New York 2024 incident-type mix
+
+A random forest classifier trained on `(year, month) -> incidentType` from
+55 historical New York disaster declarations, predicting class
+probabilities for each month of 2024 and summing them into an expected
+incident-type mix:
+
+| Incident type | Expected months |
+|---|---|
+| Snowstorm | 3.25 |
+| Hurricane | 3.04 |
+| Winter Storm | 2.14 |
+| Biological | 1.55 |
+| Severe Storm | 1.41 |
+| Flood | 0.57 |
+| Severe Ice Storm | 0.03 |
+
+With ~50 training rows across ~9 incident types, this is a low-sample
+extrapolation from historical patterns, not a calibrated forecast - it's
+presented as class probabilities rather than a single predicted label to
+avoid implying more precision than the sample supports.
 
 ## Limitations
 
-- The New York 2024 distribution is a rough estimate from historical data, not a forecast.
-- Feature importance covers five manually selected predictors and shows association, not causation.
-- Correlations are weak, so the fund allocation findings are descriptive.
+- The NY 2024 numbers are a historical extrapolation from 55 disaster
+  declarations, not a forecast.
+- Feature importance covers five predictors chosen for interpretability
+  and randomForest's 53-level categorical limit; it shows association with
+  award size, not causation.
+- The fund-allocation correlation is weak in both directions, so it's
+  reported as a descriptive finding, not evidence of a funding mechanism.
+
+## Running it
+
+```r
+# 1. Download the raw FEMA/Census extracts (skip if data/raw/ is already populated)
+Rscript scripts/01_download_data.R
+
+# 2. Run the analysis pipeline: geocoding, summaries, and both random forests
+Rscript scripts/00_run_all.R
+
+# 3. Launch the app
+shiny::runApp("app")
+```
+
+All random forests are fit with a fixed seed (see
+[`lib/modeling.R`](lib/modeling.R)), so step 2 reproduces identical
+`data/processed/*.csv` output byte-for-byte on every run.
 
 ## Repository structure
 
 ```
-proj/
-├── app/      Shiny app code
-├── lib/      helper functions
-├── data/     datasets
-├── doc/      project description and figures
-└── output/   generated outputs
+.
+├── app/       Shiny app (ui + server); reads only precomputed artifacts
+├── lib/       shared R functions used by scripts/ and app/
+├── scripts/   numbered, run-in-order pipeline: raw data -> data/processed/ + models/
+├── data/
+│   ├── raw/       FEMA/Census extracts (gitignored, regenerated by scripts/01)
+│   └── processed/ small derived CSVs the app reads
+├── models/    cached random forest artifacts (.rds)
+└── doc/       original course assignment and app screenshot
 ```
 
-## My contribution
+Each of `app/`, `lib/`, `scripts/`, and `data/` has its own README with
+more detail.
 
-- Wrote the project introduction and performed EDA on disaster trends
-- Ran and evaluated the random forest models (fund amount factor importance and NY 2024 disaster prediction)
-- Produced the feature importance bar chart and the NY 2024 prediction pie chart
-- Revised and finalized the main R file
-- Organized all team meetings and task allocation
-- Created the presentation slides and presented the full project, including analyses and limitations
+## What changed since the original
+
+The original team submission committed derived CSVs and trained models
+directly in `app.R`'s reactive code, retraining on every render. Beyond
+reorganizing the repo, this version fixes several correctness issues found
+while rebuilding the pipeline:
+
+- **Fan-out bug in the fund-allocation join**: the original joined HMA
+  projects to `DisasterDeclarationsSummaries.csv` on `disasterNumber`
+  without deduplicating - that file has multiple rows per disaster (one
+  per affected county), so the join silently inflated sums and means by
+  the fan-out multiplicity.
+- **Broken feature importance**: the original's hand-rolled permutation
+  loop dropped a column-name off-by-one (it excluded the *last* column of
+  the training frame instead of the target column), so it measured
+  importance for the target itself instead of one of the five intended
+  predictors, and `na.omit()` was applied before selecting down to
+  relevant columns, dropping rows unnecessarily.
+- **Fabricated NY 2024 prediction**: the original trained a real random
+  forest classifier but discarded its output, instead rendering a
+  hardcoded chart with made-up numbers (for faster load times, per the
+  original code comment). This version renders the model's actual
+  predicted probabilities.
+- **Unverified correlation claim**: the original README reported a "weak
+  positive correlation (0.23)" between obligated % and BCR that was never
+  actually computed anywhere in the shipped code. The real number,
+  computed in [`scripts/03_fund_allocation_summary.R`](scripts/03_fund_allocation_summary.R),
+  is a weak *negative* Spearman correlation.
