@@ -144,32 +144,3 @@ All random forests are fit with a fixed seed (see
 
 Each of `app/`, `lib/`, `scripts/`, and `data/` has its own README with
 more detail.
-
-## What changed since the original
-
-The original team submission committed derived CSVs and trained models
-directly in `app.R`'s reactive code, retraining on every render. Beyond
-reorganizing the repo, this version fixes several correctness issues found
-while rebuilding the pipeline:
-
-- **Fan-out bug in the fund-allocation join**: the original joined HMA
-  projects to `DisasterDeclarationsSummaries.csv` on `disasterNumber`
-  without deduplicating - that file has multiple rows per disaster (one
-  per affected county), so the join silently inflated sums and means by
-  the fan-out multiplicity.
-- **Broken feature importance**: the original's hand-rolled permutation
-  loop dropped a column-name off-by-one (it excluded the *last* column of
-  the training frame instead of the target column), so it measured
-  importance for the target itself instead of one of the five intended
-  predictors, and `na.omit()` was applied before selecting down to
-  relevant columns, dropping rows unnecessarily.
-- **Fabricated NY 2024 prediction**: the original trained a real random
-  forest classifier but discarded its output, instead rendering a
-  hardcoded chart with made-up numbers (for faster load times, per the
-  original code comment). This version renders the model's actual
-  predicted probabilities.
-- **Unverified correlation claim**: the original README reported a "weak
-  positive correlation (0.23)" between obligated % and BCR that was never
-  actually computed anywhere in the shipped code. The real number,
-  computed in [`scripts/03_fund_allocation_summary.R`](scripts/03_fund_allocation_summary.R),
-  is a weak *negative* Spearman correlation.
