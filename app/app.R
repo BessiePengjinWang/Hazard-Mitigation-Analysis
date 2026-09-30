@@ -143,11 +143,6 @@ ui <- fluidPage(
               tags$li("https://www.fema.gov/openfema-data-page/disaster-declarations-summaries-v2"),
               tags$li("https://www.census.gov/geographies/reference-files/time-series/geo/gazetteer-files.html")
             ),
-            tags$h1("About"),
-            tags$p(
-              "Originally built as a team project for Columbia's GR5243 Applied Data Science (Fall 2023); ",
-              "refactored and maintained here as an individual portfolio project."
-            ),
             tags$h1("GitHub Repository"),
             tags$a(
               href = "https://github.com/BessiePengjinWang/Hazard-Mitigation-Analysis",
