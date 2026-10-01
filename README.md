@@ -6,6 +6,14 @@ what actually predicts the size of a federal award.
 
 ![screenshot](doc/figs/main_fig.png)
 
+## Live demo
+
+[https://drake-wang-2000.shinyapps.io/project2/](https://drake-wang-2000.shinyapps.io/project2/)
+
+*Temporary link, hosted on a former collaborator's shinyapps.io account from
+this project's earlier version. Will be replaced once this is redeployed
+under my own account.*
+
 ## Overview
 
 The app has six tabs, backed by FEMA's public disaster and grant-funding

@@ -145,8 +145,8 @@ ui <- fluidPage(
             ),
             tags$h1("GitHub Repository"),
             tags$a(
-              href = "https://github.com/BessiePengjinWang/Hazard-Mitigation-Analysis",
-              "https://github.com/BessiePengjinWang/Hazard-Mitigation-Analysis"
+              href = "https://github.com/BessiePengjinWang/hazard-mitigation-analysis",
+              "https://github.com/BessiePengjinWang/hazard-mitigation-analysis"
             )
           )
         )
